@@ -6,26 +6,26 @@ export enum BleState {
   /**
    * [iOS only]
    */
-  Unknown = 'unknown',
+  Unknown = "unknown",
   /**
    * [iOS only]
    */
-  Resetting = 'resetting',
-  Unsupported = 'unsupported',
+  Resetting = "resetting",
+  Unsupported = "unsupported",
   /**
    * [iOS only]
    */
-  Unauthorized = 'unauthorized',
-  On = 'on',
-  Off = 'off',
+  Unauthorized = "unauthorized",
+  On = "on",
+  Off = "off",
   /**
    * [android only]
    */
-  TurningOn = 'turning_on',
+  TurningOn = "turning_on",
   /**
    * [android only]
-   */ 
-  TurningOff = 'turning_off',
+   */
+  TurningOff = "turning_off",
 }
 
 export interface Peripheral {
@@ -38,23 +38,25 @@ export interface Peripheral {
 export interface AdvertisingData {
   isConnectable?: boolean;
   localName?: string;
-  manufacturerData?: CustomAdvertisingData,
-  serviceData?: CustomAdvertisingData,
+  rawData?: CustomAdvertisingData;
+  manufacturerData?: Record<string, CustomAdvertisingData>;
+  manufacturerRawData?: CustomAdvertisingData;
+  serviceData?: Record<string, CustomAdvertisingData>;
   serviceUUIDs?: string[];
   txPowerLevel?: number;
 }
 
 export interface CustomAdvertisingData {
-  CDVType: 'ArrayBuffer',
+  CDVType: "ArrayBuffer";
   /**
    * data as an array of numbers (which can be converted back to a Uint8Array (ByteArray),
    * using something like [Buffer.from()](https://github.com/feross/buffer))
    */
-  bytes: number[],
+  bytes: number[];
   /**
    * base64-encoded string of the data
    */
-  data: string
+  data: string;
 }
 
 export interface StartOptions {
@@ -76,21 +78,32 @@ export interface StartOptions {
   forceLegacy?: boolean;
 }
 
+export interface ConnectOptions {
+  /**
+   * [android only]
+   */
+  autoconnect?: boolean;
+  /**
+   * [android only]
+   */
+  phy?: BleScanPhyMode;
+}
+
 /**
  * [android only]
  * https://developer.android.com/reference/android/bluetooth/le/ScanSettings
- */ 
+ */
 export interface ScanOptions {
-  /** 
+  /**
    * This will only works if a ScanFilter is active. Otherwise, may not retrieve any result.
-   * See https://developer.android.com/reference/android/bluetooth/le/ScanSettings#MATCH_NUM_FEW_ADVERTISEMENT. 
+   * See https://developer.android.com/reference/android/bluetooth/le/ScanSettings#MATCH_NUM_FEW_ADVERTISEMENT.
    * */
   numberOfMatches?: BleScanMatchCount;
   matchMode?: BleScanMatchMode;
-  /** 
+  /**
    * This will only works if a ScanFilter is active. Otherwise, may not retrieve any result.
    * See https://developer.android.com/reference/android/bluetooth/le/ScanSettings#CALLBACK_TYPE_FIRST_MATCH.
-   * Also read [this issue](https://github.com/dariuszseweryn/RxAndroidBle/issues/561#issuecomment-532295346) for a deeper understanding 
+   * Also read [this issue](https://github.com/dariuszseweryn/RxAndroidBle/issues/561#issuecomment-532295346) for a deeper understanding
    * of the very brittle stability of ScanSettings on android.
    * */
   callbackType?: BleScanCallbackType;
@@ -111,7 +124,7 @@ export interface ScanOptions {
    */
   phy?: BleScanPhyMode;
   /**
-   * true by default for compatibility with older apps. 
+   * true by default for compatibility with older apps.
    * In that mode, scan will only retrieve advertisements data as specified by BLE 4.2 and below.
    * Change this if you want to benefit from the extended BLE 5 advertisement spec.
    * https://developer.android.com/reference/android/bluetooth/le/ScanSettings.Builder#setLegacy(boolean)
@@ -120,12 +133,38 @@ export interface ScanOptions {
   /**
    * an android ScanFilter, used if present to restrict scan results to devices with a specific advertising name.
    * This is a whole word match, not a partial search.
-   * Use with caution, it's behavior is tricky and seems to be the following: 
+   * Use with caution, it's behavior is tricky and seems to be the following:
    * if `callbackType` is set to `AllMatches`, only the completeLocalName will be used for filtering.
    * if `callbackType` is set to `FirstMatch`, the shortenedLocalName will be used for filtering.
    * https://developer.android.com/reference/android/bluetooth/le/ScanFilter.Builder#setDeviceName(java.lang.String)
    */
-  exactAdvertisingName?: string;
+  exactAdvertisingName?: string|string[];
+  /**
+   * Android only. Filters scan results by manufacturer id and data.
+   * `manufacturerId` usually matches the company id, can be given as a hex, e.g. 0xe4f7.
+   * `manufacturerData` and `manufacturerDataMask` must have the same length. For any bit in the mask, set it to 1 if
+   * it needs to match the one in manufacturer data, otherwise set it to 0.
+   * https://developer.android.com/reference/android/bluetooth/le/ScanFilter.Builder#setManufacturerData(int,%20byte[],%20byte[])
+   */
+  manufacturerData?: {
+    manufacturerId: number;
+    manufacturerData?: number[];
+    manufacturerDataMask?: number[];
+  }
+  /**
+   * When using compaion mode, only associate single peripheral.
+   *
+   * See: https://developer.android.com/reference/android/companion/AssociationRequest.Builder#setSingleDevice(boolean)
+   */
+  single?: boolean;
+  companion?: boolean;
+}
+
+export interface CompanionScanOptions {
+  /**
+   * Scan only for a single peripheral.
+   */
+  single?: boolean;
 }
 
 /**
@@ -207,11 +246,10 @@ export interface Characteristic {
     ExtendedProperties?: "ExtendedProperties";
     NotifyEncryptionRequired?: "NotifyEncryptionRequired";
     IndicateEncryptionRequired?: "IndicateEncryptionRequired";
-  }
+  };
   characteristic: string;
   service: string;
   descriptors?: Descriptor[];
-
 }
 
 export interface PeripheralInfo extends Peripheral {
@@ -221,24 +259,24 @@ export interface PeripheralInfo extends Peripheral {
 }
 
 export enum BleEventType {
-  BleManagerDidUpdateState = 'BleManagerDidUpdateState',
-  BleManagerStopScan = 'BleManagerStopScan',
-  BleManagerDiscoverPeripheral = 'BleManagerDiscoverPeripheral',
-  BleManagerDidUpdateValueForCharacteristic = 'BleManagerDidUpdateValueForCharacteristic',
-  BleManagerConnectPeripheral = 'BleManagerConnectPeripheral',
-  BleManagerDisconnectPeripheral = 'BleManagerDisconnectPeripheral',
+  BleManagerDidUpdateState = "BleManagerDidUpdateState",
+  BleManagerStopScan = "BleManagerStopScan",
+  BleManagerDiscoverPeripheral = "BleManagerDiscoverPeripheral",
+  BleManagerDidUpdateValueForCharacteristic = "BleManagerDidUpdateValueForCharacteristic",
+  BleManagerConnectPeripheral = "BleManagerConnectPeripheral",
+  BleManagerDisconnectPeripheral = "BleManagerDisconnectPeripheral",
   /**
    * [Android only]
    */
-  BleManagerPeripheralDidBond = 'BleManagerPeripheralDidBond',
+  BleManagerPeripheralDidBond = "BleManagerPeripheralDidBond",
   /**
    * [iOS only]
    */
-  BleManagerCentralManagerWillRestoreState = 'BleManagerCentralManagerWillRestoreState',
+  BleManagerCentralManagerWillRestoreState = "BleManagerCentralManagerWillRestoreState",
   /**
    * [iOS only]
    */
-  BleManagerDidUpdateNotificationStateFor = 'BleManagerDidUpdateNotificationStateFor',
+  BleManagerDidUpdateNotificationStateFor = "BleManagerDidUpdateNotificationStateFor",
 }
 
 export interface BleStopScanEvent {
@@ -303,7 +341,7 @@ export interface BleManagerDidUpdateValueForCharacteristicEvent {
    */
   readonly service: string;
   /**
-   * data as an array of numbers (which can be converted back to a Uint8Array (ByteArray), 
+   * data as an array of numbers (which can be converted back to a Uint8Array (ByteArray),
    * using something like [Buffer.from()](https://github.com/feross/buffer))
    */
   readonly value: number[];
@@ -334,3 +372,20 @@ export interface BleManagerDidUpdateNotificationStateForEvent {
    */
   readonly code: number;
 }
+
+/**
+ * [Android only]
+ *
+ * Associate callback received a failure or failed to start the intent to
+ * pick the device to associate.
+ */
+export type BleManagerCompanionFailure = { error: string; };
+
+/**
+ * [Android only]
+ *
+ * User picked a device to associate with.
+ *
+ * Null if the request was cancelled by the user.
+ */
+export type BleManagerCompanionPeripheral = Peripheral | null;
